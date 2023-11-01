@@ -1,0 +1,168 @@
+From d4c22fcd5943fe35db648dee971f631d40b3eb94 Mon Sep 17 00:00:00 2001
+From: Stephen Smalley <sds@tycho.nsa.gov>
+Date: Thu, 20 Feb 2020 10:40:19 -0500
+Subject: [PATCH] libselinux: deprecate security_compute_user(), update man
+ pages
+
+commit 1f89c4e7879fcf6da5d8d1b025dcc03371f30fc9 ("libselinux: Eliminate
+use of security_compute_user()") eliminated the use of
+security_compute_user() by get_ordered_context_list().  Deprecate
+all use of security_compute_user() by updating the headers and man
+pages and logging a warning message on any calls to it.  Remove
+the example utility that called the interface. While here, also
+fix the documentation of correct usage of the user argument to these
+interfaces.
+
+Fixes: https://github.com/SELinuxProject/selinux/issues/70
+Signed-off-by: Stephen Smalley <sds@tycho.nsa.gov>
+Acked-by: Petr Lautrbach <plautrba@redhat.com>
+---
+ libselinux/include/selinux/selinux.h          |  8 +++-
+ .../man/man3/get_ordered_context_list.3       | 24 +++++++++---
+ libselinux/man/man3/security_compute_av.3     |  5 ++-
+ libselinux/src/compute_user.c                 |  3 ++
+ libselinux/utils/compute_user.c               | 38 -------------------
+ 5 files changed, 31 insertions(+), 47 deletions(-)
+ delete mode 100644 libselinux/utils/compute_user.c
+
+diff --git a/libselinux/include/selinux/selinux.h b/libselinux/include/selinux/selinux.h
+index a34d54fc..a5ada324 100644
+--- a/libselinux/include/selinux/selinux.h
++++ b/libselinux/include/selinux/selinux.h
+@@ -246,8 +246,12 @@ extern int security_compute_member_raw(const char * scon,
+ 				       security_class_t tclass,
+ 				       char ** newcon);
+ 
+-/* Compute the set of reachable user contexts and set *con to refer to 
+-   the NULL-terminated array of contexts.  Caller must free via freeconary. */
++/*
++ * Compute the set of reachable user contexts and set *con to refer to
++ * the NULL-terminated array of contexts.  Caller must free via freeconary.
++ * These interfaces are deprecated.  Use get_ordered_context_list() or
++ * one of its variant interfaces instead.
++ */
+ extern int security_compute_user(const char * scon,
+ 				 const char *username,
+ 				 char *** con);
+diff --git a/libselinux/man/man3/get_ordered_context_list.3 b/libselinux/man/man3/get_ordered_context_list.3
+index e084da40..3ed14a96 100644
+--- a/libselinux/man/man3/get_ordered_context_list.3
++++ b/libselinux/man/man3/get_ordered_context_list.3
+@@ -26,14 +26,28 @@ get_ordered_context_list, get_ordered_context_list_with_level, get_default_conte
+ .BI "int get_default_type(const char *" role ", char **" type );
+ .
+ .SH "DESCRIPTION"
++
++This family of functions can be used to obtain either a prioritized list of
++all reachable security contexts for a given SELinux user or a single default
++(highest priority) context for a given SELinux user for use by login-like
++programs.  These functions takes a SELinux user identity that must
++be defined in the SELinux policy as their input, not a Linux username.
++Most callers should typically first call
++.BR getseuserbyname(3)
++to look up the SELinux user identity and level for a given
++Linux username and then invoke one of
++.BR get_ordered_context_list_with_level ()
++or
++.BR get_default_context_with_level ()
++with the returned SELinux user and level as inputs.
++
+ .BR get_ordered_context_list ()
+-invokes the 
+-.BR security_compute_user (3)
+-function to obtain the list of contexts for the specified
++obtains the list of contexts for the specified
++SELinux
+ .I user
+-that are reachable from the specified
++identity that are reachable from the specified
+ .I fromcon
+-context.  The function then orders the resulting list based on the global
++context based on the global
+ .I \%/etc/selinux/{SELINUXTYPE}/contexts/default_contexts
+ file and the per-user
+ .I \%/etc/selinux/{SELINUXTYPE}/contexts/users/<username>
+diff --git a/libselinux/man/man3/security_compute_av.3 b/libselinux/man/man3/security_compute_av.3
+index 2aade5fe..8e1f746a 100644
+--- a/libselinux/man/man3/security_compute_av.3
++++ b/libselinux/man/man3/security_compute_av.3
+@@ -97,8 +97,9 @@ instance.
+ 
+ .BR security_compute_user ()
+ is used to determine the set of user contexts that can be reached from a
+-source context. It is mainly used by
+-.BR get_ordered_context_list ().
++source context. This function is deprecated; use
++.BR get_ordered_context_list (3)
++instead.
+ 
+ .BR security_get_initial_context ()
+ is used to get the context of a kernel initial security identifier specified by 
+diff --git a/libselinux/src/compute_user.c b/libselinux/src/compute_user.c
+index 401fd107..0f55de84 100644
+--- a/libselinux/src/compute_user.c
++++ b/libselinux/src/compute_user.c
+@@ -8,6 +8,7 @@
+ #include "selinux_internal.h"
+ #include "policy.h"
+ #include <limits.h>
++#include "callbacks.h"
+ 
+ int security_compute_user_raw(const char * scon,
+ 			      const char *user, char *** con)
+@@ -24,6 +25,8 @@ int security_compute_user_raw(const char * scon,
+ 		return -1;
+ 	}
+ 
++	selinux_log(SELINUX_WARNING, "Direct use of security_compute_user() is deprecated, switch to get_ordered_context_list()\n");
++
+ 	if (! scon) {
+ 		errno=EINVAL;
+ 		return -1;
+diff --git a/libselinux/utils/compute_user.c b/libselinux/utils/compute_user.c
+deleted file mode 100644
+index cae62b26..00000000
+--- a/libselinux/utils/compute_user.c
++++ /dev/null
+@@ -1,38 +0,0 @@
+-#include <unistd.h>
+-#include <sys/types.h>
+-#include <fcntl.h>
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <errno.h>
+-#include <string.h>
+-#include <ctype.h>
+-#include <selinux/selinux.h>
+-
+-int main(int argc, char **argv)
+-{
+-	char **buf, **ptr;
+-	int ret;
+-
+-	if (argc != 3) {
+-		fprintf(stderr, "usage:  %s context user\n", argv[0]);
+-		exit(1);
+-	}
+-
+-	ret = security_compute_user(argv[1], argv[2], &buf);
+-	if (ret < 0) {
+-		fprintf(stderr, "%s:  security_compute_user(%s,%s) failed\n",
+-			argv[0], argv[1], argv[2]);
+-		exit(2);
+-	}
+-
+-	if (!buf[0]) {
+-		printf("none\n");
+-		exit(0);
+-	}
+-
+-	for (ptr = buf; *ptr; ptr++) {
+-		printf("%s\n", *ptr);
+-	}
+-	freeconary(buf);
+-	exit(0);
+-}
+-- 
+2.25.4
+

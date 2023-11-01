@@ -1,0 +1,42 @@
+From 599f1ec818d50ffc9690fea8c03b5fe278f30ed4 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Wed, 7 Dec 2022 09:19:29 +0100
+Subject: [PATCH] libselinux/restorecon: Fix memory leak - xattr_value
+
+Fix memory leak introduced by commit
+ 9a04499cebedac3f585c0240e6cf68f786ae62b7
+ libselinux: Ignore missing directories when -i is used
+
+Error: RESOURCE_LEAK:
+ selinux_restorecon.c:804: alloc_fn: Storage is returned from allocation function "malloc".
+ selinux_restorecon.c:804: var_assign: Assigning: "xattr_value" = storage returned from "malloc(fc_digest_len)".
+ selinux_restorecon.c:825: leaked_storage: Variable "xattr_value" going out of scope leaks the storage it points to.
+
+Resolves: rhbz#2137965
+---
+ libselinux/src/selinux_restorecon.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/libselinux/src/selinux_restorecon.c b/libselinux/src/selinux_restorecon.c
+index 2ff73db6..b3702764 100644
+--- a/libselinux/src/selinux_restorecon.c
++++ b/libselinux/src/selinux_restorecon.c
+@@ -822,6 +822,7 @@ int selinux_restorecon(const char *pathname_orig,
+ 				free(basename_cpy);
+ 				/* missing parent directory */
+ 				if (flags.ignore_noent && errno == ENOENT) {
++					free(xattr_value);
+ 					return 0;
+ 				}
+ 				goto realpatherr;
+@@ -838,6 +839,7 @@ int selinux_restorecon(const char *pathname_orig,
+ 			if (!pathdnamer) {
+ 				free(basename_cpy);
+ 				if (flags.ignore_noent && errno == ENOENT) {
++					free(xattr_value);
+ 					return 0;
+ 				}
+ 				goto realpatherr;
+-- 
+2.37.3
+
