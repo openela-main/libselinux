@@ -1,0 +1,32 @@
+From 8384ffa7a371c8845c145951363da5d978ab98b5 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Tue, 28 Feb 2017 16:12:43 +0100
+Subject: [PATCH 5/5] libselinux: add missing av_permission values
+
+Add missing av_permission values to av_permissions.h for the sake of
+completeness (this interface is obsolete - these values are now
+obtained at runtime).
+
+Fixes: https://bugzilla.redhat.com/show_bug.cgi?id=1025931
+
+Signed-off-by: Vit Mojzis <vmojzis@redhat.com>
+---
+ libselinux/include/selinux/av_permissions.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/libselinux/include/selinux/av_permissions.h b/libselinux/include/selinux/av_permissions.h
+index c1269af9..631f0276 100644
+--- a/libselinux/include/selinux/av_permissions.h
++++ b/libselinux/include/selinux/av_permissions.h
+@@ -876,6 +876,8 @@
+ #define NSCD__SHMEMHOST                           0x00000080UL
+ #define NSCD__GETSERV                             0x00000100UL
+ #define NSCD__SHMEMSERV                           0x00000200UL
++#define NSCD__GETNETGRP                           0x00000400UL
++#define NSCD__SHMEMNETGRP                         0x00000800UL
+ #define ASSOCIATION__SENDTO                       0x00000001UL
+ #define ASSOCIATION__RECVFROM                     0x00000002UL
+ #define ASSOCIATION__SETCONTEXT                   0x00000004UL
+-- 
+2.21.0
+
