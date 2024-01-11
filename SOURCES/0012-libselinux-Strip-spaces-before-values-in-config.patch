@@ -1,0 +1,88 @@
+From 9bf63bb85d4d2cab73181ee1d8d0b07961ce4a80 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Thu, 17 Feb 2022 14:14:15 +0100
+Subject: [PATCH] libselinux: Strip spaces before values in config
+
+Spaces before values in /etc/selinux/config should be ignored just as
+spaces after them are.
+
+E.g. "SELINUXTYPE= targeted" should be a valid value.
+
+Fixes:
+   # sed -i 's/^SELINUXTYPE=/SELINUXTYPE= /g' /etc/selinux/config
+   # dnf install <any_package>
+   ...
+   RPM: error: selabel_open: (/etc/selinux/ targeted/contexts/files/file_contexts) No such file or directory
+   RPM: error: Plugin selinux: hook tsm_pre failed
+   ...
+   Error: Could not run transaction.
+
+Signed-off-by: Vit Mojzis <vmojzis@redhat.com>
+---
+ libselinux/src/selinux_config.c | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/libselinux/src/selinux_config.c b/libselinux/src/selinux_config.c
+index b06cb63b..0892b87c 100644
+--- a/libselinux/src/selinux_config.c
++++ b/libselinux/src/selinux_config.c
+@@ -91,6 +91,7 @@ int selinux_getenforcemode(int *enforce)
+ 	FILE *cfg = fopen(SELINUXCONFIG, "re");
+ 	if (cfg) {
+ 		char *buf;
++		char *tag;
+ 		int len = sizeof(SELINUXTAG) - 1;
+ 		buf = malloc(selinux_page_size);
+ 		if (!buf) {
+@@ -100,21 +101,24 @@ int selinux_getenforcemode(int *enforce)
+ 		while (fgets_unlocked(buf, selinux_page_size, cfg)) {
+ 			if (strncmp(buf, SELINUXTAG, len))
+ 				continue;
++			tag = buf+len;
++			while (isspace(*tag))
++				tag++;
+ 			if (!strncasecmp
+-			    (buf + len, "enforcing", sizeof("enforcing") - 1)) {
++			    (tag, "enforcing", sizeof("enforcing") - 1)) {
+ 				*enforce = 1;
+ 				ret = 0;
+ 				break;
+ 			} else
+ 			    if (!strncasecmp
+-				(buf + len, "permissive",
++				(tag, "permissive",
+ 				 sizeof("permissive") - 1)) {
+ 				*enforce = 0;
+ 				ret = 0;
+ 				break;
+ 			} else
+ 			    if (!strncasecmp
+-				(buf + len, "disabled",
++				(tag, "disabled",
+ 				 sizeof("disabled") - 1)) {
+ 				*enforce = -1;
+ 				ret = 0;
+@@ -177,7 +181,10 @@ static void init_selinux_config(void)
+ 
+ 			if (!strncasecmp(buf_p, SELINUXTYPETAG,
+ 					 sizeof(SELINUXTYPETAG) - 1)) {
+-				type = strdup(buf_p + sizeof(SELINUXTYPETAG) - 1);
++				buf_p += sizeof(SELINUXTYPETAG) - 1;
++				while (isspace(*buf_p))
++					buf_p++;
++				type = strdup(buf_p);
+ 				if (!type)
+ 					return;
+ 				end = type + strlen(type) - 1;
+@@ -199,6 +206,8 @@ static void init_selinux_config(void)
+ 			} else if (!strncmp(buf_p, REQUIRESEUSERS,
+ 					    sizeof(REQUIRESEUSERS) - 1)) {
+ 				value = buf_p + sizeof(REQUIRESEUSERS) - 1;
++				while (isspace(*value))
++					value++;
+ 				intptr = &require_seusers;
+ 			} else {
+ 				continue;
+-- 
+2.35.3
+

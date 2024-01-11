@@ -1,0 +1,46 @@
+From 9a04499cebedac3f585c0240e6cf68f786ae62b7 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Mon, 31 Oct 2022 17:00:43 +0100
+Subject: [PATCH] libselinux: Ignore missing directories when -i is used
+
+Currently "-i" only ignores a file whose parent directory exists. Start also
+ignoring paths with missing components.
+
+Fixes:
+  # restorecon -i -v -R /var/log/missingdir/missingfile; echo $?
+  255
+  restorecon: SELinux: Could not get canonical path for /var/log/missingdir/missingfile restorecon: No such file or directory.
+
+Signed-off-by: Vit Mojzis <vmojzis@redhat.com>
+---
+ libselinux/src/selinux_restorecon.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/libselinux/src/selinux_restorecon.c b/libselinux/src/selinux_restorecon.c
+index 5f189235..2ff73db6 100644
+--- a/libselinux/src/selinux_restorecon.c
++++ b/libselinux/src/selinux_restorecon.c
+@@ -820,6 +820,10 @@ int selinux_restorecon(const char *pathname_orig,
+ 			pathname = realpath(pathname_orig, NULL);
+ 			if (!pathname) {
+ 				free(basename_cpy);
++				/* missing parent directory */
++				if (flags.ignore_noent && errno == ENOENT) {
++					return 0;
++				}
+ 				goto realpatherr;
+ 			}
+ 		} else {
+@@ -833,6 +837,9 @@ int selinux_restorecon(const char *pathname_orig,
+ 			free(dirname_cpy);
+ 			if (!pathdnamer) {
+ 				free(basename_cpy);
++				if (flags.ignore_noent && errno == ENOENT) {
++					return 0;
++				}
+ 				goto realpatherr;
+ 			}
+ 			if (!strcmp(pathdnamer, "/"))
+-- 
+2.37.3
+

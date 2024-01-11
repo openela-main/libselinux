@@ -1,0 +1,66 @@
+From 90a4f2b9a5194a2d1ab4c45b7a90bbb6c8099a68 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Tue, 2 Jul 2019 14:09:05 +0200
+Subject: [PATCH] Fix mcstrans secolor examples
+
+According to "check_dominance" function:
+Range defined as "s15:c0.c1023" does not dominate any other range than
+ "s15:c0.c1023" (does not dominate "s15", "s15:c0.c200", etc.).
+While range defined as "s15-s15:c0.c1023" dominates all of the above.
+
+This is either a bug, or "s15:c0.c1023" should not be used in the
+examples.
+
+Signed-off-by: Vit Mojzis <vmojzis@redhat.com>
+---
+ libselinux/man/man5/secolor.conf.5    | 4 ++--
+ libselinux/man/ru/man5/secolor.conf.5 | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/libselinux/man/man5/secolor.conf.5 b/libselinux/man/man5/secolor.conf.5
+index b834577a..a3bf2da1 100644
+--- a/libselinux/man/man5/secolor.conf.5
++++ b/libselinux/man/man5/secolor.conf.5
+@@ -123,7 +123,7 @@ range s7\-s7:c0.c1023 = black red
+ .br
+ range s9\-s9:c0.c1023 = black orange
+ .br
+-range s15:c0.c1023   = black yellow
++range s15\-s15:c0.c1023   = black yellow
+ .RE
+ 
+ .sp
+@@ -165,7 +165,7 @@ type xguest_t     = black green
+ .br
+ user sysadm_u     = white black
+ .br
+-range s0:c0.c1023 = black white
++range s0-s0:c0.c1023 = black white
+ .br
+ user *            = black white
+ .br
+diff --git a/libselinux/man/ru/man5/secolor.conf.5 b/libselinux/man/ru/man5/secolor.conf.5
+index 4c1236ae..bcae80c1 100644
+--- a/libselinux/man/ru/man5/secolor.conf.5
++++ b/libselinux/man/ru/man5/secolor.conf.5
+@@ -121,7 +121,7 @@ range s7\-s7:c0.c1023 = black red
+ .br
+ range s9\-s9:c0.c1023 = black orange
+ .br
+-range s15:c0.c1023   = black yellow
++range s15\-s15:c0.c1023   = black yellow
+ .RE
+ 
+ .sp
+@@ -163,7 +163,7 @@ type xguest_t     = black green
+ .br
+ user sysadm_u     = white black
+ .br
+-range s0:c0.c1023 = black white
++range s0\-s0:c0.c1023 = black white
+ .br
+ user *            = black white
+ .br
+-- 
+2.21.0
+
