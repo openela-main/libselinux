@@ -1,0 +1,55 @@
+From dca54ca1a8ab0b256e7834f7f5e97375427fbfd9 Mon Sep 17 00:00:00 2001
+From: Petr Lautrbach <plautrba@redhat.com>
+Date: Wed, 27 Feb 2019 09:37:17 +0100
+Subject: [PATCH 4/5] Bring some old permission and flask constants back to
+ Python bindings
+
+---
+ libselinux/src/selinuxswig.i        | 4 ++++
+ libselinux/src/selinuxswig_python.i | 3 ++-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/libselinux/src/selinuxswig.i b/libselinux/src/selinuxswig.i
+index dbdb4c3d..9c5b9263 100644
+--- a/libselinux/src/selinuxswig.i
++++ b/libselinux/src/selinuxswig.i
+@@ -5,7 +5,9 @@
+ %module selinux
+ %{
+ 	#include "../include/selinux/avc.h"
++	#include "../include/selinux/av_permissions.h"
+ 	#include "../include/selinux/context.h"
++	#include "../include/selinux/flask.h"
+ 	#include "../include/selinux/get_context_list.h"
+ 	#include "../include/selinux/get_default_type.h"
+ 	#include "../include/selinux/label.h"
+@@ -58,7 +60,9 @@
+ %ignore avc_netlink_check_nb;
+ 
+ %include "../include/selinux/avc.h"
++%include "../include/selinux/av_permissions.h"
+ %include "../include/selinux/context.h"
++%include "../include/selinux/flask.h"
+ %include "../include/selinux/get_context_list.h"
+ %include "../include/selinux/get_default_type.h"
+ %include "../include/selinux/label.h"
+diff --git a/libselinux/src/selinuxswig_python.i b/libselinux/src/selinuxswig_python.i
+index 4c73bf92..6eaab081 100644
+--- a/libselinux/src/selinuxswig_python.i
++++ b/libselinux/src/selinuxswig_python.i
+@@ -1,10 +1,11 @@
+ /* Author: James Athey
+  */
+ 
+-/* Never build rpm_execcon interface */
++/* Never build rpm_execcon interface unless you need to have ACG compatibility
+ #ifndef DISABLE_RPM
+ #define DISABLE_RPM
+ #endif
++*/
+ 
+ %module selinux
+ %{
+-- 
+2.21.0
+
