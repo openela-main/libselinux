@@ -1,4 +1,4 @@
-From 1dbd23dc2566b3fe9113bf09fd9e190dfd4651b6 Mon Sep 17 00:00:00 2001
+From 5d257019cb4de4681e60f6e15bf2c1be73275b9c Mon Sep 17 00:00:00 2001
 From: Petr Lautrbach <plautrba@redhat.com>
 Date: Fri, 30 Jul 2021 14:14:37 +0200
 Subject: [PATCH] Use SHA-2 instead of SHA-1
@@ -30,7 +30,7 @@ The use of SHA-1 in RHEL9 is deprecated
  create mode 100644 libselinux/src/sha256.h
 
 diff --git a/libselinux/include/selinux/label.h b/libselinux/include/selinux/label.h
-index e8983606d93b..a35d84d63b0a 100644
+index ce189a3ae2fe..ce77d32dfed1 100644
 --- a/libselinux/include/selinux/label.h
 +++ b/libselinux/include/selinux/label.h
 @@ -120,13 +120,13 @@ extern int selabel_lookup_best_match_raw(struct selabel_handle *rec, char **con,
@@ -185,23 +185,23 @@ index c56326814b94..098c840fc59b 100644
  .BR selabel_open (3)
  must be called specifying the required
 diff --git a/libselinux/src/Makefile b/libselinux/src/Makefile
-index 70ba063ada5d..0c803d8d4aae 100644
+index 7aadb822afb0..d906c8811017 100644
 --- a/libselinux/src/Makefile
 +++ b/libselinux/src/Makefile
-@@ -125,7 +125,7 @@ DISABLE_FLAGS+= -DNO_MEDIA_BACKEND -DNO_DB_BACKEND -DNO_X_BACKEND \
+@@ -130,7 +130,7 @@ DISABLE_FLAGS+= -DNO_MEDIA_BACKEND -DNO_DB_BACKEND -DNO_X_BACKEND \
  	-DBUILD_HOST
  SRCS= callbacks.c freecon.c label.c label_file.c \
  	label_backends_android.c regex.c label_support.c \
 -	matchpathcon.c setrans_client.c sha1.c booleans.c
 +	matchpathcon.c setrans_client.c sha256.c booleans.c
- else
  LABEL_BACKEND_ANDROID=y
  endif
+ 
 diff --git a/libselinux/src/label_file.c b/libselinux/src/label_file.c
-index 74ae9b9feb70..33d395e414f0 100644
+index 4778f8f8cd4a..b902ff06a502 100644
 --- a/libselinux/src/label_file.c
 +++ b/libselinux/src/label_file.c
-@@ -1010,7 +1010,7 @@ static struct spec *lookup_common(struct selabel_handle *rec,
+@@ -1093,7 +1093,7 @@ static struct spec *lookup_common(struct selabel_handle *rec,
  
  /*
   * Returns true if the digest of all partial matched contexts is the same as
@@ -210,7 +210,7 @@ index 74ae9b9feb70..33d395e414f0 100644
   * digest will always be returned. The caller must free any returned digests.
   */
  static bool get_digests_all_partial_matches(struct selabel_handle *rec,
-@@ -1019,39 +1019,39 @@ static bool get_digests_all_partial_matches(struct selabel_handle *rec,
+@@ -1102,39 +1102,39 @@ static bool get_digests_all_partial_matches(struct selabel_handle *rec,
  					    uint8_t **xattr_digest,
  					    size_t *digest_len)
  {
@@ -261,7 +261,7 @@ index 74ae9b9feb70..33d395e414f0 100644
  		return true;
  
  	return false;
-@@ -1071,22 +1071,22 @@ static bool hash_all_partial_matches(struct selabel_handle *rec, const char *key
+@@ -1154,22 +1154,22 @@ static bool hash_all_partial_matches(struct selabel_handle *rec, const char *key
  		return false;
  	}
  
@@ -293,7 +293,7 @@ index 74ae9b9feb70..33d395e414f0 100644
  	free(matches);
  	return true;
 diff --git a/libselinux/src/label_internal.h b/libselinux/src/label_internal.h
-index 782c6aa8cc0c..304e8d96490a 100644
+index ea60cd9a058f..77ac8173c7a9 100644
 --- a/libselinux/src/label_internal.h
 +++ b/libselinux/src/label_internal.h
 @@ -13,7 +13,7 @@
@@ -334,10 +334,10 @@ index 782c6aa8cc0c..304e8d96490a 100644
  };
  
 diff --git a/libselinux/src/label_support.c b/libselinux/src/label_support.c
-index 54fd49a5b7b9..4003eb8dc7af 100644
+index f7ab9292562e..1c3c1728f6ba 100644
 --- a/libselinux/src/label_support.c
 +++ b/libselinux/src/label_support.c
-@@ -115,7 +115,7 @@ int  read_spec_entries(char *line_buf, const char **errbuf, int num_args, ...)
+@@ -114,7 +114,7 @@ int  read_spec_entries(char *line_buf, const char **errbuf, int num_args, ...)
  /* Once all the specfiles are in the hash_buf, generate the hash. */
  void  digest_gen_hash(struct selabel_digest *digest)
  {
@@ -346,7 +346,7 @@ index 54fd49a5b7b9..4003eb8dc7af 100644
  	size_t remaining_size;
  	const unsigned char *ptr;
  
-@@ -123,19 +123,19 @@ void  digest_gen_hash(struct selabel_digest *digest)
+@@ -122,19 +122,19 @@ void  digest_gen_hash(struct selabel_digest *digest)
  	if (!digest)
  		return;
  
@@ -369,9 +369,9 @@ index 54fd49a5b7b9..4003eb8dc7af 100644
 +	Sha256Finalise(&context, (SHA256_HASH *)digest->digest);
  	free(digest->hashbuf);
  	digest->hashbuf = NULL;
- 	return;
+ }
 diff --git a/libselinux/src/selinux_restorecon.c b/libselinux/src/selinux_restorecon.c
-index 6b5f6921b82b..24604776974e 100644
+index 38f10f1c7edd..111b89aa8dc9 100644
 --- a/libselinux/src/selinux_restorecon.c
 +++ b/libselinux/src/selinux_restorecon.c
 @@ -37,7 +37,7 @@
@@ -383,7 +383,7 @@ index 6b5f6921b82b..24604776974e 100644
  
  #define STAR_COUNT 1024
  
-@@ -305,7 +305,7 @@ static uint64_t exclude_non_seclabel_mounts(void)
+@@ -304,7 +304,7 @@ static uint64_t exclude_non_seclabel_mounts(void)
  static int add_xattr_entry(const char *directory, bool delete_nonmatch,
  			   bool delete_all)
  {
@@ -392,7 +392,7 @@ index 6b5f6921b82b..24604776974e 100644
  	size_t i, digest_len = 0;
  	int rc;
  	enum digest_result digest_result;
-@@ -329,15 +329,15 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
+@@ -328,15 +328,15 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
  	}
  
  	/* Convert entry to a hex encoded string. */
@@ -411,7 +411,7 @@ index 6b5f6921b82b..24604776974e 100644
  
  	digest_result = match ? MATCH : NOMATCH;
  
-@@ -357,7 +357,7 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
+@@ -356,7 +356,7 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
  	/* Now add entries to link list. */
  	new_entry = malloc(sizeof(struct dir_xattr));
  	if (!new_entry) {
@@ -420,7 +420,7 @@ index 6b5f6921b82b..24604776974e 100644
  		goto oom;
  	}
  	new_entry->next = NULL;
-@@ -365,15 +365,15 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
+@@ -364,15 +364,15 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
  	new_entry->directory = strdup(directory);
  	if (!new_entry->directory) {
  		free(new_entry);
@@ -439,7 +439,7 @@ index 6b5f6921b82b..24604776974e 100644
  		goto oom;
  	}
  
-@@ -387,7 +387,7 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
+@@ -386,7 +386,7 @@ static int add_xattr_entry(const char *directory, bool delete_nonmatch,
  		dir_xattr_last = new_entry;
  	}
  
@@ -448,7 +448,7 @@ index 6b5f6921b82b..24604776974e 100644
  	return 0;
  
  oom:
-@@ -775,7 +775,7 @@ err:
+@@ -776,7 +776,7 @@ err:
  
  struct dir_hash_node {
  	char *path;
@@ -457,7 +457,7 @@ index 6b5f6921b82b..24604776974e 100644
  	struct dir_hash_node *next;
  };
  /*
-@@ -1281,7 +1281,7 @@ static int selinux_restorecon_common(const char *pathname_orig,
+@@ -1282,7 +1282,7 @@ static int selinux_restorecon_common(const char *pathname_orig,
  			if (setxattr(current->path,
  			    RESTORECON_PARTIAL_MATCH_DIGEST,
  			    current->digest,
@@ -1179,7 +1179,7 @@ index 000000000000..406ed869cd82
 +        SHA256_HASH*        Digest          // [in]
 +    );
 diff --git a/libselinux/utils/selabel_digest.c b/libselinux/utils/selabel_digest.c
-index 6a8313a2c88d..a69331f1c6b5 100644
+index bf22b472856c..b992d4230eb3 100644
 --- a/libselinux/utils/selabel_digest.c
 +++ b/libselinux/utils/selabel_digest.c
 @@ -15,8 +15,8 @@ static __attribute__ ((__noreturn__)) void usage(const char *progname)
@@ -1193,8 +1193,8 @@ index 6a8313a2c88d..a69331f1c6b5 100644
  		"-B  Use base specfiles only (valid for \"-b file\" only).\n\t"
  		"-i  Do not request a digest.\n\t"
  		"-f  Optional file containing the specs (defaults to\n\t"
-@@ -62,12 +62,12 @@ int main(int argc, char **argv)
- 	int backend = 0, rc, opt, validate = 0;
+@@ -63,12 +63,12 @@ int main(int argc, char **argv)
+ 	int rc, opt, validate = 0;
  	char *baseonly = NULL, *file = NULL, *digest = (char *)1;
  	char **specfiles = NULL;
 -	unsigned char *sha1_digest = NULL;
@@ -1208,7 +1208,7 @@ index 6a8313a2c88d..a69331f1c6b5 100644
  
  	struct selabel_handle *hnd;
  	struct selinux_opt selabel_option[] = {
-@@ -137,7 +137,7 @@ int main(int argc, char **argv)
+@@ -138,7 +138,7 @@ int main(int argc, char **argv)
  		return -1;
  	}
  
@@ -1217,7 +1217,7 @@ index 6a8313a2c88d..a69331f1c6b5 100644
  							    &num_specfiles);
  
  	if (rc) {
-@@ -152,19 +152,19 @@ int main(int argc, char **argv)
+@@ -153,19 +153,19 @@ int main(int argc, char **argv)
  		goto err;
  	}
  
@@ -1242,7 +1242,7 @@ index 6a8313a2c88d..a69331f1c6b5 100644
  	printf("calculated using the following specfile(s):\n");
  
  	if (specfiles) {
-@@ -177,13 +177,13 @@ int main(int argc, char **argv)
+@@ -178,13 +178,13 @@ int main(int argc, char **argv)
  			cmd_ptr += strlen(specfiles[i]) + 1;
  			printf("%s\n", specfiles[i]);
  		}
@@ -1260,10 +1260,10 @@ index 6a8313a2c88d..a69331f1c6b5 100644
  	selabel_close(hnd);
  	return rc;
 diff --git a/libselinux/utils/selabel_get_digests_all_partial_matches.c b/libselinux/utils/selabel_get_digests_all_partial_matches.c
-index c4e0f836b260..80723f714264 100644
+index e2733b4195ff..98e533dc2692 100644
 --- a/libselinux/utils/selabel_get_digests_all_partial_matches.c
 +++ b/libselinux/utils/selabel_get_digests_all_partial_matches.c
-@@ -18,8 +18,8 @@ static __attribute__ ((__noreturn__)) void usage(const char *progname)
+@@ -16,8 +16,8 @@ static __attribute__ ((__noreturn__)) void usage(const char *progname)
  		"-v  Validate file_contxts entries against loaded policy.\n\t"
  		"-r  Recursively descend directories.\n\t"
  		"-f  Optional file_contexts file (defaults to current policy).\n\t"
@@ -1274,7 +1274,7 @@ index c4e0f836b260..80723f714264 100644
  		"<path> against\na newly generated digest based on the "
  		"file_context entries for that node\n(using the regx, mode "
  		"and path entries).\n", progname);
-@@ -37,7 +37,7 @@ int main(int argc, char **argv)
+@@ -35,7 +35,7 @@ int main(int argc, char **argv)
  	char *paths[2] = { NULL, NULL };
  	uint8_t *xattr_digest = NULL;
  	uint8_t *calculated_digest = NULL;
@@ -1283,7 +1283,7 @@ index c4e0f836b260..80723f714264 100644
  
  	struct selabel_handle *hnd;
  	struct selinux_opt selabel_option[] = {
-@@ -106,27 +106,27 @@ int main(int argc, char **argv)
+@@ -104,27 +104,27 @@ int main(int argc, char **argv)
  							 &xattr_digest,
  							 &digest_len);
  
@@ -1317,7 +1317,7 @@ index c4e0f836b260..80723f714264 100644
  					       ftsent->fts_path);
  					printf("as file_context entry is \"<<none>>\"\n");
  					goto cleanup;
-@@ -136,25 +136,25 @@ int main(int argc, char **argv)
+@@ -134,25 +134,25 @@ int main(int argc, char **argv)
  				       ftsent->fts_path);
  
  				for (i = 0; i < digest_len; i++)
@@ -1349,5 +1349,5 @@ index c4e0f836b260..80723f714264 100644
  		}
  		default:
 -- 
-2.39.0
+2.41.0
 
