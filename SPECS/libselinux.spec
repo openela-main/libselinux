@@ -6,7 +6,7 @@
 %endif
 
 %define libsepolver 2.9-1
-%define libselinuxrelease 8
+%define libselinuxrelease 9
 
 Summary: SELinux library and simple utilities
 Name: libselinux
@@ -33,6 +33,7 @@ Patch0011: 0011-selinux-8-5-Describe-fcontext-regular-expressions.patch
 Patch0012: 0012-libselinux-Strip-spaces-before-values-in-config.patch
 Patch0013: 0013-libselinux-Ignore-missing-directories-when-i-is-used.patch
 Patch0014: 0014-libselinux-restorecon-Fix-memory-leak-xattr_value.patch
+Patch0015: 0015-libselinux-restorecon-Include-selinux-label.h.patch
 
 BuildRequires: gcc
 %if 0%{?with_ruby}
@@ -280,6 +281,9 @@ rm -f %{buildroot}%{_mandir}/man8/togglesebool*
 %endif
 
 %changelog
+* Mon Jul 29 2024 Vit Mojzis <vmojzis@redhat.com> - 2.9-9
+- restorecon: Include <selinux/label.h> (RHEL-50830)
+
 * Wed Dec 07 2022 Vit Mojzis <vmojzis@redhat.com> - 2.9-8
 - restorecon: Fix memory leak - xattr_value (#2137965)
 
