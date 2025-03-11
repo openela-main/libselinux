@@ -6,7 +6,7 @@
 %endif
 
 %define libsepolver 2.9-1
-%define libselinuxrelease 9
+%define libselinuxrelease 10
 
 Summary: SELinux library and simple utilities
 Name: libselinux
@@ -34,6 +34,8 @@ Patch0012: 0012-libselinux-Strip-spaces-before-values-in-config.patch
 Patch0013: 0013-libselinux-Ignore-missing-directories-when-i-is-used.patch
 Patch0014: 0014-libselinux-restorecon-Fix-memory-leak-xattr_value.patch
 Patch0015: 0015-libselinux-restorecon-Include-selinux-label.h.patch
+Patch0016: 0016-libselinux-Fix-NULL-pointer-use-in-selinux_restoreco.patch
+Patch0017: 0017-libselinux-Close-old-selabel-handle-when-setting-a-n.patch
 
 BuildRequires: gcc
 %if 0%{?with_ruby}
@@ -281,6 +283,10 @@ rm -f %{buildroot}%{_mandir}/man8/togglesebool*
 %endif
 
 %changelog
+* Fri Jan 24 2025 Petr Lautrbach <lautrbach@redhat.com> - 2.9-10
+- Close old selabel handle when setting a new one (RHEL-73348)
+- Fix NULL pointer use in selinux_restorecon_set_sehandle (RHEL-74252)
+
 * Mon Jul 29 2024 Vit Mojzis <vmojzis@redhat.com> - 2.9-9
 - restorecon: Include <selinux/label.h> (RHEL-50830)
 
