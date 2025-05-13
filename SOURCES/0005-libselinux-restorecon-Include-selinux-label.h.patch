@@ -1,0 +1,48 @@
+From 3b2fc58d81f8b0fa017a79a91d38ce86e88e4d4d Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Fri, 26 Jul 2024 17:59:15 +0200
+Subject: [PATCH] libselinux/restorecon: Include <selinux/label.h>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+restorecon.h uses types defined in label.h, so it needs to include
+label.h (or code using restorecon.h also needs to include label.h,
+which is not practical).
+
+Fixes:
+  $ make DESTDIR=~/obj install > make.out
+In file included from semanage_store.c:39:
+/home/sdsmall/obj/usr/include/selinux/restorecon.h:137:52: error:
+‘struct selabel_handle’ declared inside parameter list will not be
+visible outside of this definition or declaration [-Werror]
+  137 | extern void selinux_restorecon_set_sehandle(struct
+selabel_handle *hndl);
+      |                                                    ^~~~~~~~~~~~~~
+cc1: all warnings being treated as errors
+make[2]: *** [Makefile:111: semanage_store.o] Error 1
+make[1]: *** [Makefile:15: install] Error 2
+make: *** [Makefile:40: install] Error 1
+
+Signed-off-by: Vit Mojzis <vmojzis@redhat.com>
+Acked-by: Stephen Smalley <stephen.smalley.work@gmail.com>
+---
+ libselinux/include/selinux/restorecon.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/libselinux/include/selinux/restorecon.h b/libselinux/include/selinux/restorecon.h
+index 8df47445..210f65fd 100644
+--- a/libselinux/include/selinux/restorecon.h
++++ b/libselinux/include/selinux/restorecon.h
+@@ -1,6 +1,8 @@
+ #ifndef _RESTORECON_H_
+ #define _RESTORECON_H_
+ 
++#include <selinux/label.h>
++
+ #include <sys/types.h>
+ #include <stddef.h>
+ #include <stdarg.h>
+-- 
+2.45.2
+

@@ -1,0 +1,32 @@
+From 6c2adcc23145bfff9f607fb00fa8c3597dd0435f Mon Sep 17 00:00:00 2001
+From: James Carter <jwcart2@gmail.com>
+Date: Wed, 22 Jan 2025 10:58:27 -0500
+Subject: [PATCH] libselinux: Close old selabel handle when setting a new one
+Content-type: text/plain
+
+In selinux_restorecon_set_sehandle(), close the old selabel handle
+(if it exists) before setting the new one.
+
+Signed-off-by: James Carter <jwcart2@gmail.com>
+---
+ libselinux/src/selinux_restorecon.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/libselinux/src/selinux_restorecon.c b/libselinux/src/selinux_restorecon.c
+index 111b89aa8dc9..1664514ac9e6 100644
+--- a/libselinux/src/selinux_restorecon.c
++++ b/libselinux/src/selinux_restorecon.c
+@@ -1365,6 +1365,10 @@ void selinux_restorecon_set_sehandle(struct selabel_handle *hndl)
+ 	unsigned char *fc_digest;
+ 	size_t num_specfiles, fc_digest_len;
+ 
++	if (fc_sehandle) {
++		selabel_close(fc_sehandle);
++	}
++
+ 	fc_sehandle = hndl;
+ 	if (!fc_sehandle)
+ 		return;
+-- 
+2.48.1
+
