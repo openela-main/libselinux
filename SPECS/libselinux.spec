@@ -6,7 +6,7 @@
 %endif
 
 %define libsepolver 2.9-1
-%define libselinuxrelease 10
+%define libselinuxrelease 11
 
 Summary: SELinux library and simple utilities
 Name: libselinux
@@ -36,6 +36,7 @@ Patch0014: 0014-libselinux-restorecon-Fix-memory-leak-xattr_value.patch
 Patch0015: 0015-libselinux-restorecon-Include-selinux-label.h.patch
 Patch0016: 0016-libselinux-Fix-NULL-pointer-use-in-selinux_restoreco.patch
 Patch0017: 0017-libselinux-Close-old-selabel-handle-when-setting-a-n.patch
+Patch0018: 0018-libselinux-Ignore-files-removed-during-relabeling.patch
 
 BuildRequires: gcc
 %if 0%{?with_ruby}
@@ -283,6 +284,9 @@ rm -f %{buildroot}%{_mandir}/man8/togglesebool*
 %endif
 
 %changelog
+* Tue Jan 20 2026 Vit Mojzis <vmojzis@redhat.com> - 2.9-11
+- Ignore files removed during relabeling (RHEL-123885)
+
 * Fri Jan 24 2025 Petr Lautrbach <lautrbach@redhat.com> - 2.9-10
 - Close old selabel handle when setting a new one (RHEL-73348)
 - Fix NULL pointer use in selinux_restorecon_set_sehandle (RHEL-74252)
