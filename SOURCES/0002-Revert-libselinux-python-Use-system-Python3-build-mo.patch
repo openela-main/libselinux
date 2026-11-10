@@ -1,0 +1,27 @@
+From eeb5dbe746492dd4722745c5cf7ba2b46ac0a805 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Fri, 10 Jul 2026 13:20:24 +0200
+Subject: [PATCH] Revert "libselinux,python: Use system Python3 build module"
+
+This reverts commit e11e59675f6981e8b7cf990478887c9147b2b20a.
+
+python3-build is not available in RHEL-10
+---
+ libselinux/src/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/libselinux/src/Makefile b/libselinux/src/Makefile
+index fde55cd6..a5bb06d0 100644
+--- a/libselinux/src/Makefile
++++ b/libselinux/src/Makefile
+@@ -151,6 +151,7 @@ all: $(LIBSO)
+ endif
+ 
+ pywrap: all selinuxswig_python_exception.i
++	$(PYTHON) -m pip install build wheel
+ 	CFLAGS="$(CPPFLAGS) $(CFLAGS) $(SWIG_CFLAGS)" $(PYTHON) -m build --no-isolation --wheel .
+ 
+ rubywrap: all $(SWIGRUBYSO)
+-- 
+2.53.0
+

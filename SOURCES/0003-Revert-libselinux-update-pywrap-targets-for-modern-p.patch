@@ -1,0 +1,60 @@
+From 17e8cfb4af093ee0913adacf0c4473465ce05520 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Fri, 10 Jul 2026 13:31:01 +0200
+Subject: [PATCH] Revert "libselinux: update pywrap targets for modern python
+ builds"
+
+This reverts commit dfedefffbbdde609a7aacb1ef570c7ca1bb70915.
+
+'pip install build' fails on systems without network and python3-build
+is not available in RHEL-10
+---
+ libselinux/src/.gitignore | 1 -
+ libselinux/src/Makefile   | 8 ++++----
+ 2 files changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/libselinux/src/.gitignore b/libselinux/src/.gitignore
+index 5413ccf0..94400e81 100644
+--- a/libselinux/src/.gitignore
++++ b/libselinux/src/.gitignore
+@@ -2,4 +2,3 @@ selinux.py
+ selinuxswig_python_wrap.c
+ selinuxswig_ruby_wrap.c
+ selinux.egg-info/
+-dist/
+diff --git a/libselinux/src/Makefile b/libselinux/src/Makefile
+index a5bb06d0..0688f7d0 100644
+--- a/libselinux/src/Makefile
++++ b/libselinux/src/Makefile
+@@ -151,8 +151,7 @@ all: $(LIBSO)
+ endif
+ 
+ pywrap: all selinuxswig_python_exception.i
+-	$(PYTHON) -m pip install build wheel
+-	CFLAGS="$(CPPFLAGS) $(CFLAGS) $(SWIG_CFLAGS)" $(PYTHON) -m build --no-isolation --wheel .
++	CFLAGS="$(CPPFLAGS) $(CFLAGS) $(SWIG_CFLAGS)" $(PYTHON) setup.py build_ext
+ 
+ rubywrap: all $(SWIGRUBYSO)
+ 
+@@ -197,7 +196,7 @@ ifneq ($(DISABLE_SHARED),y)
+ endif
+ 
+ install-pywrap: pywrap
+-	$(PYTHON) -m pip install --no-build-isolation --force-reinstall --prefix=$(PREFIX) `test -n "$(DESTDIR)" && echo --root $(DESTDIR) --ignore-installed --no-deps` dist/*.whl
++	CFLAGS="$(CPPFLAGS) $(CFLAGS) $(SWIG_CFLAGS)" $(PYTHON) -m pip install --no-build-isolation --prefix=$(PREFIX) `test -n "$(DESTDIR)" && echo --root $(DESTDIR) --ignore-installed --no-deps` $(PYTHON_SETUP_ARGS) .
+ 	install -m 644 $(SWIGPYOUT) $(DESTDIR)$(PYTHONLIBDIR)/selinux/__init__.py
+ 	ln -sf --relative $(DESTDIR)$(PYTHONLIBDIR)/selinux/_selinux$(PYCEXT) $(DESTDIR)$(PYTHONLIBDIR)/_selinux$(PYCEXT)
+ 
+@@ -210,7 +209,8 @@ relabel:
+ 
+ clean-pywrap:
+ 	-rm -f $(SWIGLOBJ) $(SWIGSO) $(AUDIT2WHYLOBJ) $(AUDIT2WHYSO)
+-	-rm -rf build dist *.egg-info *~ \#* *pyc .#*
++	$(PYTHON) setup.py clean
++	-rm -rf build *~ \#* *pyc .#* selinux.egg-info/
+ 
+ clean-rubywrap:
+ 	-rm -f $(SWIGRUBYLOBJ) $(SWIGRUBYSO)
+-- 
+2.53.0
+
