@@ -4,7 +4,7 @@
 Summary: SELinux library and simple utilities
 Name: libselinux
 Version: 3.6
-Release: 3%{?dist}
+Release: 4%{?dist}
 License: Public Domain
 # https://github.com/SELinuxProject/selinux/wiki/Releases
 Source0: https://github.com/SELinuxProject/selinux/releases/download/3.6/libselinux-3.6.tar.gz
@@ -22,6 +22,8 @@ Patch0003: 0003-Revert-libselinux-Remove-the-Russian-translations.patch
 Patch0004: 0004-Revert-libselinux-Remove-the-Russian-translations.patch
 Patch0005: 0005-libselinux-restorecon-Include-selinux-label.h.patch
 Patch0006: 0006-libselinux-Close-old-selabel-handle-when-setting-a-n.patch
+Patch0007: 0007-libselinux-Ignore-files-removed-during-relabeling.patch
+Patch0008: 0008-libselinux-Ignore-directories-removed-during-relabel.patch
 # Patch list end
 BuildRequires: gcc make
 BuildRequires: ruby-devel ruby libsepol-static >= %{libsepolver} swig pcre2-devel xz-devel
@@ -220,6 +222,10 @@ rm -f %{buildroot}%{_mandir}/man8/togglesebool*
 %{ruby_vendorarchdir}/selinux.so
 
 %changelog
+* Tue May 05 2026 Vit Mojzis <vmojzis@redhat.com> - 3.6-4
+- Ignore files removed during relabeling (RHEL-123884)
+- Ignore directories removed during relabeling (RHEL-123884)
+
 * Tue Jan 28 2025 Petr Lautrbach <lautrbach@redhat.com> - 3.6-3
 - Close old selabel handle when setting a new one (RHEL-76472)
 

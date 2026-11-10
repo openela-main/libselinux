@@ -1,0 +1,39 @@
+From 064f355902f1e9b976af3b7468d7a1b84fbc1158 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Fri, 30 Jan 2026 16:32:10 +0100
+Subject: [PATCH] libselinux: Ignore directories removed during relabeling
+
+Extend 54c79a74f5b9154762abaadf8194665598b24115 to directories, since
+users will expect them to be ignored as well.
+
+In case ignore_noent is specified, ignore directories removed during
+relabeling (race condition between directory read and removal after
+parent directory read).
+
+Signed-off-by: Vit Mojzis <vmojzis@redhat.com>
+Acked-by: Stephen Smalley <stephen.smalley.work@gmail.com>
+---
+ libselinux/src/selinux_restorecon.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/libselinux/src/selinux_restorecon.c b/libselinux/src/selinux_restorecon.c
+index d32b75fb..51850099 100644
+--- a/libselinux/src/selinux_restorecon.c
++++ b/libselinux/src/selinux_restorecon.c
+@@ -903,9 +903,10 @@ loop_body:
+ 		case FTS_DNR:
+ 			error = errno;
+ 			errno = ftsent->fts_errno;
+-			selinux_log(SELINUX_ERROR,
+-				    "Could not read %s: %m.\n",
+-				    ftsent->fts_path);
++			if (!state->flags.ignore_noent || errno != ENOENT)
++				selinux_log(SELINUX_ERROR,
++					    "Could not read %s: %m.\n",
++					    ftsent->fts_path);
+ 			errno = error;
+ 			fts_set(fts, ftsent, FTS_SKIP);
+ 			continue;
+-- 
+2.53.0
+
